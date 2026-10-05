@@ -4,6 +4,8 @@
 #include <QWidget>
 #include <QPushButton>
 #include <plotwidget.h>
+#include <QMessageBox>
+
 
 class MainWidget : public QWidget
 {

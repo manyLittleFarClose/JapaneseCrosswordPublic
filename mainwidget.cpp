@@ -20,8 +20,15 @@ void MainWidget::onClicked()
 {
     QString fileName = QFileDialog::getOpenFileName(
                     this, "Open File", "", "Images (*.png *.jpg)");
-
+    if(fileName.isEmpty()){
+        return;
+    }
     QImage image(fileName);
+    if(image.isNull()){
+        QMessageBox::warning(this, "Ошибка", "Не удалось загрузить изображение. Проверьте формат файла.");
+        return;
+
+    }
     mPlotWidget->setImage(image);
 }
 
