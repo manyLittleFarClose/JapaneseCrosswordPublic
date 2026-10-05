@@ -46,7 +46,13 @@ void PlotWidget::paintEvent(QPaintEvent *event)
 
     const double w = width();
     const double h = height();
-    const QRectF targetRect(w * 0.2, h * 0.2, w * 0.8, h * 0.8);
+    //Специальные переменные размерности окна
+    const double offSetX = w * 0.2;
+    const double offSetY = h * 0.2;
+    const double gridWidth = w * 0.8;
+    const double gridHight = h * 0.8;
+
+    const QRectF targetRect(offSetX, offSetY, gridWidth, gridHight);
 
     if (mFlagShowOriginal)
     {
@@ -57,13 +63,24 @@ void PlotWidget::paintEvent(QPaintEvent *event)
         painter.drawImage(targetRect, mMonoImage, mMonoImage.rect());
     }
 
+    //Проверка  если изображение не загружено не рисуем его
+    if(mMonoImage.isNull()) return;
+
     const int nColumns = mMonoImage.width();
     const int nRows = mMonoImage.height();
-    const double imagePixelWidthOnWidget = w * 0.8 / nColumns;
-    const double imagePixelHeightOnWidget = h * 0.8 / nRows;
+    const double imagePixelWidthOnWidget = gridWidth / nColumns;
+    const double imagePixelHeightOnWidget = gridHight / nRows;
+
+    //настройка шрифта текста, для того чтобы тект нормально влизал
+    QFont hintFont = painter.font();
+    //Делаем размеры шрифта чуть меньше размера клетки
+    hintFont.setPixelSize(qMin(imagePixelWidthOnWidget, imagePixelWidthOnWidget) - 2);
+    hintFont.setBold(true); //Делаем шрифт полужирным
+    painter.setFont(hintFont);
+
 
     painter.save();
-    painter.translate(w * 0.2, h * 0.2);
+    painter.translate(offSetX, offSetY);
 
     for (int y = 0; y < nRows; ++y)
     {
@@ -80,6 +97,7 @@ void PlotWidget::paintEvent(QPaintEvent *event)
                 }
 
                 nBlackPixels.push_back(nBlackOnePart);
+                x--;
             }
         }
 

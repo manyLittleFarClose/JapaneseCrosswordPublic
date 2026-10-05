@@ -20,10 +20,12 @@ void MainWidget::onClicked()
 {
     QString fileName = QFileDialog::getOpenFileName(
                     this, "Open File", "", "Images (*.png *.jpg)");
+    //Проверка не пустой ли объект?
     if(fileName.isEmpty()){
         return;
     }
     QImage image(fileName);
+    // проверка не загрузилось ли не то?
     if(image.isNull()){
         QMessageBox::warning(this, "Ошибка", "Не удалось загрузить изображение. Проверьте формат файла.");
         return;
