@@ -103,7 +103,7 @@ void PlotWidget::paintEvent(QPaintEvent *event)
             if (mMonoImage.pixel(x, y) == qRgb(0, 0, 0)) {
                 int nBlackOnePart = 1;
                 ++x;
-                for (; x < nColumns && mMonoImage.pixel(x, y) == qRgb(0, 0, 0); ++x) {
+                for (; x < nColumns && mMonoImage.pixel(x, y) == qRgb(0,0,0); ++x) {
                     nBlackOnePart++;
                 }
 
@@ -122,6 +122,30 @@ void PlotWidget::paintEvent(QPaintEvent *event)
         }
         painter.restore();
     }
+    //Рисуем подсказки сверху от картинки
+    for(int x = 0; x < nColumns; ++x){
+        std::vector<int> nBlackPixels;
+        for(int y = 0; y < nRows; ++y){
+            if(mMonoImage.pixel(x, y) == qRgb(0, 0 , 0)){
+                int nBlackOnePart = 1;
+                ++y;
+                for(; y <nRows && mMonoImage.pixel(x, y) == qRgb(0,0,0); ++y){
+                    nBlackOnePart++;
+                }
+                nBlackPixels.push_back(nBlackOnePart);
+            }
+        }
+        painter.save();
+        painter.translate(imagePixelWidthOnWidget * x, 0);
+        for(int i = int(nBlackPixels.size()) - 1; i >=0; --i){
+            painter.translate(0, -imagePixelHeightOnWidget);
+            const QRect pixelRect(0, 0, imagePixelWidthOnWidget, imagePixelHeightOnWidget);
+            const QString str = QString::number(nBlackPixels[i]);
+            painter.drawText(pixelRect, Qt::TextDontClip | Qt::AlignHCenter, str);
+        }
+        painter.restore();
+    }
+
 
     painter.restore();
 }
