@@ -1,4 +1,4 @@
-  #ifndef PLOTWIDGET_H
+#ifndef PLOTWIDGET_H
 #define PLOTWIDGET_H
 
 #include <QWidget>

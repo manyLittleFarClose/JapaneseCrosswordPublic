@@ -1,7 +1,7 @@
 #include "mainwidget.h"
 
-#include <QHBoxLayout>
 #include <QFileDialog>
+#include <QHBoxLayout>
 
 MainWidget::MainWidget(QWidget *parent)
     : QWidget(parent)
@@ -18,19 +18,18 @@ MainWidget::MainWidget(QWidget *parent)
 
 void MainWidget::onClicked()
 {
-    QString fileName = QFileDialog::getOpenFileName(
-                    this, "Open File", "", "Images (*.png *.jpg)");
+    QString fileName = QFileDialog::getOpenFileName(this, "Open File", "", "Images (*.png *.jpg)");
     //Проверка не пустой ли объект?
-    if(fileName.isEmpty()){
+    if (fileName.isEmpty()) {
         return;
     }
     QImage image(fileName);
     // проверка не загрузилось ли не то?
-    if(image.isNull()){
-        QMessageBox::warning(this, "Ошибка", "Не удалось загрузить изображение. Проверьте формат файла.");
+    if (image.isNull()) {
+        QMessageBox::warning(this,
+                             "Ошибка",
+                             "Не удалось загрузить изображение. Проверьте формат файла.");
         return;
-
     }
     mPlotWidget->setImage(image);
 }
-
