@@ -10,9 +10,11 @@ public:
     explicit PlotWidget(QWidget *parent = nullptr);
 
     void setImage(const QImage &image);
+    void generateGridImage(const QImage &image);
 
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
+
 
     bool mFlagShowOriginal = false;
 
@@ -24,6 +26,8 @@ public:
     QImage mGrayScaledImage;
     // монохромная картинка
     QImage mMonoImage;
+    //монохром с сеткой
+    QImage mImageWithGrid;
 };
 
 #endif // PLOTWIDGET_H

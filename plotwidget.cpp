@@ -1,6 +1,7 @@
 #include "plotwidget.h"
 
 #include <QPainter>
+#include <vector>
 
 PlotWidget::PlotWidget(QWidget *parent)
     : QWidget{parent}
@@ -31,6 +32,53 @@ void PlotWidget::setImage(const QImage &image)
 
     // превращаем все цвета либо в белый, либо в черный цвет
     mMonoImage = mGrayScaledImage.convertToFormat(QImage::Format_Mono, Qt::MonoOnly);
+
+    // Генерируем изображение с сеткой ПОСЛЕ того, как mMonoImage готов
+    generateGridImage(mMonoImage);
+}
+
+void PlotWidget::generateGridImage(const QImage &image) {
+    if (image.isNull() || mMonoImage.isNull()) {
+        mImageWithGrid = QImage();
+        return;
+    }
+
+    // 1. КРИТИЧЕСКИ ВАЖНО: Конвертируем в ARGB32 перед масштабированием.
+    // Это предотвращает превращение изображения в белый шум при работе с Mono/Indexed форматами.
+    QImage safeImage = image.convertToFormat(QImage::Format_ARGB32);
+
+    // 2. Масштабируем до 1000x1000 (как в вашем исходном наброске).
+    // Qt::SmoothTransformation дает более качественный результат при увеличении.
+    mImageWithGrid = safeImage.scaled(1000, 1000);
+
+    QPainter painter(&mImageWithGrid);
+    painter.setRenderHint(QPainter::Antialiasing); // Делает линии сетки более четкими
+
+    const int nColumns = mMonoImage.width();
+    const int nRows = mMonoImage.height();
+
+    // 3. Вычисляем размер клетки исходя из РЕАЛЬНОГО размера получившегося mImageWithGrid
+    const double cellWidth = (double)mImageWithGrid.width() / nColumns;
+    const double cellHeight = (double)mImageWithGrid.height() / nRows;
+
+    QPen thinPen(Qt::black);
+    thinPen.setWidth(1);
+    QPen thickPen(Qt::black);
+    thickPen.setWidth(3);
+
+    // Вертикальные линии
+    for (int i = 0; i <= nColumns; i++) {
+        double x = i * cellWidth;
+        painter.setPen((i % 5 == 0) ? thickPen : thinPen);
+        painter.drawLine(QPointF(x, 0), QPointF(x, mImageWithGrid.height()));
+    }
+
+    // Горизонтальные линии
+    for (int i = 0; i <= nRows; i++) {
+        double y = i * cellHeight;
+        painter.setPen((i % 5 == 0) ? thickPen : thinPen);
+        painter.drawLine(QPointF(0, y), QPointF(mImageWithGrid.width(), y));
+    }
 }
 
 void PlotWidget::paintEvent(QPaintEvent *event)
@@ -42,71 +90,54 @@ void PlotWidget::paintEvent(QPaintEvent *event)
 
     const double w = width();
     const double h = height();
-    //Специальные переменные размерности окна
+
     const double offSetX = w * 0.2;
     const double offSetY = h * 0.2;
     const double gridWidth = w * 0.8;
-    const double gridHight = h * 0.8;
+    const double gridHeight = h * 0.8;
 
-    const QRectF targetRect(offSetX, offSetY, gridWidth, gridHight);
+    const QRectF targetRect(offSetX, offSetY, gridWidth, gridHeight);
 
+    // Рисуем изображение (с уже встроенной сеткой или оригинал)
     if (mFlagShowOriginal) {
         painter.drawImage(targetRect, mImage, mImage.rect());
+    } else if (!mImageWithGrid.isNull()) {
+        // Qt автоматически масштабирует mImageWithGrid под targetRect,
+        // и сетка идеально совпадет с размерами изображения.
+        painter.drawImage(targetRect, mImageWithGrid, mImageWithGrid.rect());
     } else {
-        painter.drawImage(targetRect, mMonoImage, mMonoImage.rect());
+        // Fallback на случай, если сетка еще не сгенерирована
+        painter.drawImage(targetRect, mImage, mImage.rect());
     }
 
-    //Проверка  если изображение не загружено не рисуем его
+    // Если изображение не загружено, не рисуем подсказки
     if (mMonoImage.isNull())
         return;
 
     const int nColumns = mMonoImage.width();
     const int nRows = mMonoImage.height();
     const double imagePixelWidthOnWidget = gridWidth / nColumns;
-    const double imagePixelHeightOnWidget = gridHight / nRows;
+    const double imagePixelHeightOnWidget = gridHeight / nRows;
 
-    //настройка шрифта текста, для того чтобы тект нормально влизал
+    // Настройка шрифта для подсказок
     QFont hintFont = painter.font();
-    //Делаем размеры шрифта чуть меньше размера клетки
     hintFont.setPixelSize(qMin(imagePixelWidthOnWidget, imagePixelHeightOnWidget) - 2);
-    hintFont.setBold(true); //Делаем шрифт полужирным
+    hintFont.setBold(true);
     painter.setFont(hintFont);
 
     painter.save();
     painter.translate(offSetX, offSetY);
 
-    //Создаем Pen для рисования
-    QPen thinPen(Qt::black);
-    thinPen.setWidth(1);
-    QPen thickPen (Qt::black);
-    thickPen.setWidth(3);
-
-    //Рисуем линии
-    //Вертикальные линии
-    for(int i = 0; i <=nColumns; i++){
-        double x =  i * imagePixelWidthOnWidget;
-
-        painter.setPen((i % 5 == 0) ? thickPen : thinPen);
-        painter.drawLine(x, 0, x, gridHight);
-    }
-    //Горизонтальные линии
-    for(int i = 0; i <=nRows; i++){
-        double y = i * imagePixelHeightOnWidget;
-        painter.setPen((i % 5 == 0) ? thickPen : thinPen);
-        painter.drawLine(0, y, gridWidth, y);
-    }
-
-    //Рисуем подсказки слева от картинки
+    // Рисуем подсказки слева от картинки (динамически, не на самой картинке)
     for (int y = 0; y < nRows; ++y) {
         std::vector<int> nBlackPixels;
         for (int x = 0; x < nColumns; ++x) {
             if (mMonoImage.pixel(x, y) == qRgb(0, 0, 0)) {
                 int nBlackOnePart = 1;
                 ++x;
-                for (; x < nColumns && mMonoImage.pixel(x, y) == qRgb(0,0,0); ++x) {
+                for (; x < nColumns && mMonoImage.pixel(x, y) == qRgb(0, 0, 0); ++x) {
                     nBlackOnePart++;
                 }
-
                 nBlackPixels.push_back(nBlackOnePart);
                 x--;
             }
@@ -122,14 +153,15 @@ void PlotWidget::paintEvent(QPaintEvent *event)
         }
         painter.restore();
     }
-    //Рисуем подсказки сверху от картинки
-    for(int x = 0; x < nColumns; ++x){
+
+    // Рисуем подсказки сверху от картинки (динамически, не на самой картинке)
+    for (int x = 0; x < nColumns; ++x) {
         std::vector<int> nBlackPixels;
-        for(int y = 0; y < nRows; ++y){
-            if(mMonoImage.pixel(x, y) == qRgb(0, 0 , 0)){
+        for (int y = 0; y < nRows; ++y) {
+            if (mMonoImage.pixel(x, y) == qRgb(0, 0, 0)) {
                 int nBlackOnePart = 1;
                 ++y;
-                for(; y <nRows && mMonoImage.pixel(x, y) == qRgb(0,0,0); ++y){
+                for (; y < nRows && mMonoImage.pixel(x, y) == qRgb(0, 0, 0); ++y) {
                     nBlackOnePart++;
                 }
                 nBlackPixels.push_back(nBlackOnePart);
@@ -137,15 +169,14 @@ void PlotWidget::paintEvent(QPaintEvent *event)
         }
         painter.save();
         painter.translate(imagePixelWidthOnWidget * x, 0);
-        for(int i = int(nBlackPixels.size()) - 1; i >=0; --i){
+        for (int i = int(nBlackPixels.size()) - 1; i >= 0; --i) {
             painter.translate(0, -imagePixelHeightOnWidget);
-            const QRect pixelRect(0, 0, imagePixelWidthOnWidget, imagePixelHeightOnWidget);
+            const QRectF pixelRect(0, 0, imagePixelWidthOnWidget, imagePixelHeightOnWidget);
             const QString str = QString::number(nBlackPixels[i]);
             painter.drawText(pixelRect, Qt::TextDontClip | Qt::AlignHCenter, str);
         }
         painter.restore();
     }
-
 
     painter.restore();
 }
