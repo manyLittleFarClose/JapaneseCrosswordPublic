@@ -6,6 +6,48 @@
 PlotWidget::PlotWidget(QWidget *parent)
     : QWidget{parent}
 {}
+#include <QImage>
+#include <QPainter>
+#include <QPainterPath>
+
+QImage generateAriesPathImage()
+{
+    int size = 500;
+    QImage image(size, size, QImage::Format_ARGB32);
+    image.fill(Qt::white);
+
+    QPainter painter(&image);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+
+    QPen pen(Qt::black);
+    pen.setWidth(size / 12);
+    pen.setCapStyle(Qt::RoundCap);
+    pen.setJoinStyle(Qt::RoundJoin);
+    painter.setPen(pen);
+
+    QPainterPath path;
+    double w = size;
+    double h = size;
+
+    // --- Левый рог ---
+    path.moveTo(w * 0.50, h * 0.85); // Начинаем в нижней центральной части
+    // Изгиб вверх и влево
+    path.cubicTo(w * 0.10, h * 0.85, w * 0.10, h * 0.20, w * 0.35, h * 0.15);
+    // Загиб кончика рога внутрь
+    path.cubicTo(w * 0.45, h * 0.12, w * 0.45, h * 0.30, w * 0.35, h * 0.35);
+
+    // --- Правый рог ---
+    path.moveTo(w * 0.50, h * 0.85); // Снова начинаем из той же нижней точки
+    // Изгиб вверх и вправо
+    path.cubicTo(w * 0.90, h * 0.85, w * 0.90, h * 0.20, w * 0.65, h * 0.15);
+    // Загиб кончика рога внутрь
+    path.cubicTo(w * 0.55, h * 0.12, w * 0.55, h * 0.30, w * 0.65, h * 0.35);
+
+    painter.drawPath(path);
+
+    return image;
+}
 
 void PlotWidget::setImage(const QImage &image)
 {

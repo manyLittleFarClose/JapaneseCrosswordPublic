@@ -2,7 +2,7 @@
 #define PLOTWIDGET_H
 
 #include <QWidget>
-
+QImage generateAriesPathImage();
 class PlotWidget : public QWidget
 {
     Q_OBJECT
@@ -28,6 +28,8 @@ public:
     QImage mMonoImage;
     //монохром с сеткой
     QImage mImageWithGrid;
+
+
 };
 
 #endif // PLOTWIDGET_H
