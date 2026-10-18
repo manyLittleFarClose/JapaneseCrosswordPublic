@@ -15,7 +15,6 @@ public:
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
 
-
     bool mFlagShowOriginal = false;
 
     // исходная
@@ -28,8 +27,6 @@ public:
     QImage mMonoImage;
     //монохром с сеткой
     QImage mImageWithGrid;
-
-
 };
 
 #endif // PLOTWIDGET_H

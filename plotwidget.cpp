@@ -19,7 +19,6 @@ QImage generateAriesPathImage()
     QPainter painter(&image);
     painter.setRenderHint(QPainter::Antialiasing);
 
-
     QPen pen(Qt::black);
     pen.setWidth(size / 12);
     pen.setCapStyle(Qt::RoundCap);
@@ -77,9 +76,13 @@ void PlotWidget::setImage(const QImage &image)
 
     // Генерируем изображение с сеткой ПОСЛЕ того, как mMonoImage готов
     generateGridImage(mMonoImage);
+
+    //Перерисовываем виджет
+    update();
 }
 
-void PlotWidget::generateGridImage(const QImage &image) {
+void PlotWidget::generateGridImage(const QImage &image)
+{
     if (image.isNull() || mMonoImage.isNull()) {
         mImageWithGrid = QImage();
         return;
@@ -100,8 +103,8 @@ void PlotWidget::generateGridImage(const QImage &image) {
     const int nRows = mMonoImage.height();
 
     // 3. Вычисляем размер клетки исходя из РЕАЛЬНОГО размера получившегося mImageWithGrid
-    const double cellWidth = (double)mImageWithGrid.width() / nColumns;
-    const double cellHeight = (double)mImageWithGrid.height() / nRows;
+    const double cellWidth = (double) mImageWithGrid.width() / nColumns;
+    const double cellHeight = (double) mImageWithGrid.height() / nRows;
 
     QPen thinPen(Qt::black);
     thinPen.setWidth(1);
@@ -166,7 +169,7 @@ void PlotWidget::paintEvent(QPaintEvent *event)
     hintFont.setPixelSize(qMin(imagePixelWidthOnWidget, imagePixelHeightOnWidget) - 2);
     hintFont.setBold(true);
     painter.setFont(hintFont);
-
+    painter.setPen(QPen(Qt::black));
     painter.save();
     painter.translate(offSetX, offSetY);
 

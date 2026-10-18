@@ -11,19 +11,17 @@ MainWidget::MainWidget(QWidget *parent)
     auto *buttonsLayout = new QVBoxLayout;
     buttonsLayout->addWidget(mButtonOpen);
     buttonsLayout->addWidget(mButtonZODIAK);
-    buttonsLayout->addStretch(); // Опционально: этот "распорка" прижмет кнопки к верху, а не растянет их по всей высоте
-
+    buttonsLayout
+        ->addStretch(); // Опционально: этот "распорка" прижмет кнопки к верху, а не растянет их по всей высоте
 
     auto *mainLayout = new QHBoxLayout;
     mainLayout->addLayout(buttonsLayout); // Добавляем колонку с кнопками
     mainLayout->addWidget(mPlotWidget);   // Добавляем виджет отрисовки справа от кнопок
 
-
     mainLayout->setStretchFactor(mPlotWidget, 1);
 
     setLayout(mainLayout);
 
-    
     connect(mButtonOpen, &QPushButton::clicked, this, &MainWidget::onClicked);
     connect(mButtonZODIAK, &QPushButton::clicked, this, &MainWidget::onZODIAKClicked);
 }
@@ -31,7 +29,6 @@ MainWidget::MainWidget(QWidget *parent)
 void MainWidget::onZODIAKClicked()
 {
     QImage ariesImage = generateAriesPathImage();
-
 
     mPlotWidget->setImage(ariesImage);
 }
