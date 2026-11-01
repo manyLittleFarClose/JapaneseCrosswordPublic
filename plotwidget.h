@@ -25,8 +25,7 @@ public:
     QImage mGrayScaledImage;
     // монохромная картинка
     QImage mMonoImage;
-    //монохром с сеткой
-    QImage mImageWithGrid;
+
 };
 
 #endif // PLOTWIDGET_H

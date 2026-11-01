@@ -74,56 +74,8 @@ void PlotWidget::setImage(const QImage &image)
     // превращаем все цвета либо в белый, либо в черный цвет
     mMonoImage = mGrayScaledImage.convertToFormat(QImage::Format_Mono, Qt::MonoOnly);
 
-    // Генерируем изображение с сеткой ПОСЛЕ того, как mMonoImage готов
-    generateGridImage(mMonoImage);
-
     //Перерисовываем виджет
     update();
-}
-
-void PlotWidget::generateGridImage(const QImage &image)
-{
-    if (image.isNull() || mMonoImage.isNull()) {
-        mImageWithGrid = QImage();
-        return;
-    }
-
-    // 1. КРИТИЧЕСКИ ВАЖНО: Конвертируем в ARGB32 перед масштабированием.
-    // Это предотвращает превращение изображения в белый шум при работе с Mono/Indexed форматами.
-    QImage safeImage = image.convertToFormat(QImage::Format_ARGB32);
-
-    // 2. Масштабируем до 1000x1000 (как в вашем исходном наброске).
-    // Qt::SmoothTransformation дает более качественный результат при увеличении.
-    mImageWithGrid = safeImage.scaled(1000, 1000);
-
-    QPainter painter(&mImageWithGrid);
-    painter.setRenderHint(QPainter::Antialiasing); // Делает линии сетки более четкими
-
-    const int nColumns = mMonoImage.width();
-    const int nRows = mMonoImage.height();
-
-    // 3. Вычисляем размер клетки исходя из РЕАЛЬНОГО размера получившегося mImageWithGrid
-    const double cellWidth = (double) mImageWithGrid.width() / nColumns;
-    const double cellHeight = (double) mImageWithGrid.height() / nRows;
-
-    QPen thinPen(Qt::black);
-    thinPen.setWidth(1);
-    QPen thickPen(Qt::black);
-    thickPen.setWidth(3);
-
-    // Вертикальные линии
-    for (int i = 0; i <= nColumns; i++) {
-        double x = i * cellWidth;
-        painter.setPen((i % 5 == 0) ? thickPen : thinPen);
-        painter.drawLine(QPointF(x, 0), QPointF(x, mImageWithGrid.height()));
-    }
-
-    // Горизонтальные линии
-    for (int i = 0; i <= nRows; i++) {
-        double y = i * cellHeight;
-        painter.setPen((i % 5 == 0) ? thickPen : thinPen);
-        painter.drawLine(QPointF(0, y), QPointF(mImageWithGrid.width(), y));
-    }
 }
 
 void PlotWidget::paintEvent(QPaintEvent *event)
@@ -143,30 +95,63 @@ void PlotWidget::paintEvent(QPaintEvent *event)
 
     const QRectF targetRect(offSetX, offSetY, gridWidth, gridHeight);
 
-    // Рисуем изображение (с уже встроенной сеткой или оригинал)
-    if (mFlagShowOriginal) {
-        painter.drawImage(targetRect, mImage, mImage.rect());
-    } else if (!mImageWithGrid.isNull()) {
-        // Qt автоматически масштабирует mImageWithGrid под targetRect,
-        // и сетка идеально совпадет с размерами изображения.
-        painter.drawImage(targetRect, mImageWithGrid, mImageWithGrid.rect());
-    } else {
-        // Fallback на случай, если сетка еще не сгенерирована
-        painter.drawImage(targetRect, mImage, mImage.rect());
-    }
-
-    // Если изображение не загружено, не рисуем подсказки
-    if (mMonoImage.isNull())
-        return;
-
     const int nColumns = mMonoImage.width();
     const int nRows = mMonoImage.height();
-    const double imagePixelWidthOnWidget = gridWidth / nColumns;
-    const double imagePixelHeightOnWidget = gridHeight / nRows;
+    //Размеры одной клетки
+    const double cellWidth = gridWidth / nColumns;
+    const double cellHeight = gridHeight / nRows;
 
+    // Если изображение не загружено, выходим
+    if (mMonoImage.isNull() || mImage.isNull())
+        return;
+
+
+    //Настройка перьев для рисования сетки подсказок
+    QPen thinPen(Qt::black);
+    thinPen.setWidth(1);
+    QPen thickPen(Qt::black);
+    thickPen.setWidth(4);
+
+    if(mFlagShowOriginal) {
+
+        painter.drawImage(targetRect, mImage, mImage.rect());
+
+    } else{
+        painter.drawImage(targetRect, mMonoImage, mMonoImage.rect());
+        //Поверх изображения рисуем сетку
+        //Вертикальные линии
+        for(int i = 0; i <= nColumns; i++){
+            double x = offSetX + i * cellWidth;
+            painter.setPen((i%5 == 0) ? thickPen : thinPen);
+            painter.drawLine(QPointF(x, offSetY), QPointF(x, offSetX + gridHeight));
+        }
+        //Горизонтальные линии
+        for(int i = 0; i <= nRows; i++){
+            double y = offSetY + i * cellHeight;
+            painter.setPen((i % 5 == 0) ? thickPen : thinPen);
+            painter.drawLine(QPointF(offSetX, y), QPointF(offSetX + gridWidth, y));
+        }
+    }
+
+
+
+
+
+
+    for(int i = 0; i <= nColumns; i++){
+        double x = offSetX + i * cellWidth;
+        painter.setPen((i % 5 == 0) ? thickPen : thinPen);
+        painter.drawLine(QPointF(x, 0), QPointF(x, offSetY));
+    }
+
+    for(int i = 0; i <= nRows; i++){
+        double y = offSetY + i * cellHeight;
+        painter.setPen((i % 5 == 0) ? thickPen : thinPen);
+        painter.drawLine(QPoint(0, y), QPoint(offSetX, y));
+    }
     // Настройка шрифта для подсказок
     QFont hintFont = painter.font();
-    hintFont.setPixelSize(qMin(imagePixelWidthOnWidget, imagePixelHeightOnWidget) - 2);
+    hintFont.setPixelSize(qMin(cellWidth, cellHeight) - 2);
     hintFont.setBold(true);
     painter.setFont(hintFont);
     painter.setPen(QPen(Qt::black));
@@ -189,10 +174,10 @@ void PlotWidget::paintEvent(QPaintEvent *event)
         }
 
         painter.save();
-        painter.translate(0, imagePixelHeightOnWidget * y);
+        painter.translate(0, cellHeight * y);
         for (int i = int(nBlackPixels.size()) - 1; i >= 0; --i) {
-            painter.translate(-imagePixelWidthOnWidget, 0);
-            const QRectF pixelRect(0, 0, imagePixelWidthOnWidget, imagePixelHeightOnWidget);
+            painter.translate(-cellWidth, 0);
+            const QRectF pixelRect(0, 0, cellWidth, cellHeight);
             const QString str = QString::number(nBlackPixels[i]);
             painter.drawText(pixelRect, Qt::TextDontClip | Qt::AlignCenter, str);
         }
@@ -213,10 +198,10 @@ void PlotWidget::paintEvent(QPaintEvent *event)
             }
         }
         painter.save();
-        painter.translate(imagePixelWidthOnWidget * x, 0);
+        painter.translate(cellWidth * x, 0);
         for (int i = int(nBlackPixels.size()) - 1; i >= 0; --i) {
-            painter.translate(0, -imagePixelHeightOnWidget);
-            const QRectF pixelRect(0, 0, imagePixelWidthOnWidget, imagePixelHeightOnWidget);
+            painter.translate(0, -cellHeight);
+            const QRectF pixelRect(0, 0, cellWidth, cellHeight);
             const QString str = QString::number(nBlackPixels[i]);
             painter.drawText(pixelRect, Qt::TextDontClip | Qt::AlignHCenter, str);
         }
