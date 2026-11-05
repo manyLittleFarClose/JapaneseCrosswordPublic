@@ -117,7 +117,10 @@ void PlotWidget::paintEvent(QPaintEvent *event)
         painter.drawImage(targetRect, mImage, mImage.rect());
 
     } else{
-        painter.drawImage(targetRect, mMonoImage, mMonoImage.rect());
+        QImage imageToDraw = mMonoImage;
+        imageToDraw.setColor(1, qRgb(0, 0, 255));
+        imageToDraw.setColor(0, qRgb(255, 255, 255));
+        painter.drawImage(targetRect, imageToDraw, mMonoImage.rect());
         //Поверх изображения рисуем сетку
         //Вертикальные линии
         for(int i = 0; i <= nColumns; i++){
@@ -200,10 +203,21 @@ void PlotWidget::paintEvent(QPaintEvent *event)
         painter.save();
         painter.translate(cellWidth * x, 0);
         for (int i = int(nBlackPixels.size()) - 1; i >= 0; --i) {
-            painter.translate(0, -cellHeight);
-            const QRectF pixelRect(0, 0, cellWidth, cellHeight);
-            const QString str = QString::number(nBlackPixels[i]);
-            painter.drawText(pixelRect, Qt::TextDontClip | Qt::AlignHCenter, str);
+            painter.save();
+
+            // Смещаем начало координат в центр ячейки подсказки
+            double centerX = cellWidth / 2.0;
+            double centerY = -(i + 0.5) * cellHeight; // Двигаемся вверх от базовой линии
+            painter.translate(centerX, centerY);
+
+            // Поворачиваем на -90 градусов (против часовой стрелки)
+            painter.rotate(-90);
+
+            // Рисуем текст в центре повернутой системы координат
+            const QRectF pixelRect(-cellWidth / 2.0, -cellHeight / 2.0, cellWidth, cellHeight);
+            painter.drawText(pixelRect, Qt::AlignCenter, QString::number(nBlackPixels[i]));
+
+            painter.restore();
         }
         painter.restore();
     }
